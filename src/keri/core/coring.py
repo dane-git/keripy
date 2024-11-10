@@ -3743,8 +3743,8 @@ class Saider(Matter):
         updated_dict[label] = saider.qb64
 
         ## update the version field to the compact version calculation ?
-        if 'v' in sad:
-            updated_dict['v'] = sad['v']
+        # if 'v' in sad:
+        #     updated_dict['v'] = sad['v']
 
         
          # Sort paths by depth (deepest paths first)
