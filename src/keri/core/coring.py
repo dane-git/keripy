@@ -3404,8 +3404,6 @@ class Prefixer(Matter):
 
 
 
-
-
 class Saider(Matter):
     """
     Saider is Matter subclass for self-addressing identifier prefix using
@@ -3435,6 +3433,11 @@ class Saider(Matter):
         _compactify (types.MethodType): recursively compacts nested dictionaries 
                                         on label if it exists (sad)
         _saidify (types.MethodType): recursively derives said (.qb64 )
+        _map_paths_to_label (types.MethodType): find all leaves with said label ([[list]])
+        _get_nested_object_and_parent (types.MethodType): retrieve nested struct from array of field-labels
+                                        (dict)
+        _replace_nested_object (types.MethodType): replace nested struct from array of field-labels
+                                        (sad)
 
     """
     Dummy = "#"  # dummy spaceholder char for said. Must not be a valid Base64 char
@@ -3603,7 +3606,134 @@ class Saider(Matter):
         code = code if code is not None else self.code
         return self._derive(sad=sad, code=code, **kwa)
 
-    # Recursive to handle arrays with dicts with labels
+   
+
+    @classmethod
+    def _map_paths_to_label(clas, data, label='d'):
+        """
+        Recursively finds paths to all leaves with a specified label in a nested dictionary or list.
+
+        Parameters:
+            data (dict or list): The input nested structure.
+            label (str): The target label to locate within the nested structure.
+
+        Returns:
+            list of list: A list of paths to each occurrence of the specified label.
+        """
+        paths = []
+
+        def recursive_find(value, current_path=[]):
+            # If it's a dictionary, check each key-value pair
+            if isinstance(value, dict):
+                for key, sub_value in value.items():
+                    new_path = current_path + [key]
+                    if key == label:
+                        # Add the path as a list if the key matches the target label
+                        paths.append(new_path)
+                    else:
+                        # Otherwise, keep traversing deeper
+                        recursive_find(sub_value, new_path)
+            # If it's a list, traverse each index
+            elif isinstance(value, list):
+                for index, item in enumerate(value):
+                    recursive_find(item, current_path + [index])
+
+        # Start recursive search from the root
+        recursive_find(data)
+        # Sort paths by depth (deepest paths first)
+        paths.sort(key=lambda x: len(x), reverse=True)
+        return paths
+    @classmethod
+    def _get_nested_object_and_parent(clas, data, path):
+        """
+        Retrieves a nested object and its parent from a dictionary by following a path represented by an array of keys.
+
+        Parameters:
+            data (dict): The dictionary to traverse.
+            path (list): A list of keys representing the path to the nested object (e.g., ['a', 'D', 'd']).
+
+        Returns:
+            tuple: (parent, current) where:
+                - current is the nested object if the path exists.
+                - parent is the dictionary containing the final key in the path, or None if the path is not fully valid.
+                - If any key in the path is not found, returns (None, None).
+        """
+        current = data
+        parent = None
+
+        for key in path:
+            if isinstance(current, dict) and key in current:
+                parent = current
+                current = current[key]
+            else:
+                return None, None  # Return (None, None) if the path is not fully valid
+
+        return parent, current
+    
+    @classmethod
+    def _replace_nested_object(clas, data, path, new_obj):
+        """
+        Replaces a nested object within a dictionary with a new object, based on a specified path.
+
+        Parameters:
+            data (dict): The original dictionary to modify.
+            path (list): A list of keys representing the path to the nested object to replace (e.g., ['a', 'D', 'd']).
+            new_obj: The new object to insert at the specified path.
+
+        Returns:
+            dict: The modified dictionary with the nested object replaced.
+                If any part of the path is invalid, the function returns the original dictionary unchanged.
+        """
+        current = data
+        for key in path[:-1]:  # Traverse to the parent of the target location
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                # Return the original data if path is not valid
+                return data
+
+        # Replace the target object if the final key exists in the current dictionary
+        if isinstance(current, dict) and path[-1] in current:
+            current[path[-1]] = new_obj
+        return data
+    
+    @classmethod
+    def _saidify(clas,
+                sad: dict,
+                *,
+                code: str = MtrDex.Blake3_256,
+                kind: str = None,
+                label: str = Saids.d,
+                ignore: list = None, **kwa):
+        
+        # first map the paths that need to be collapesed.
+        ## todo add ignore
+        paths = clas._map_paths_to_label(sad,label= label) #, ignore = ignore)
+        updated = sad.copy()
+        compact = sad.copy()
+        sads = {}
+        saiders = {}
+        for p in paths:
+            p1 = p[:-1]
+            parent, current = clas._get_nested_object_and_parent(compact, p)
+            _sad = clas.saidify(parent, label='d')
+            sads[".".join(p1)] = _sad[1]
+            saiders[".".join(p)] = _sad[0]
+            updated = clas._replace_nested_object(updated, p, _sad[0].qb64)
+            if len(p1) > 0:
+                compact = clas._replace_nested_object(compact, p1, _sad[0].qb64)
+            # Final compact version.
+            else:
+                compact = _sad[1]
+        return {
+            'paths': paths,
+            'sads': sads,
+            'saiders': saiders,
+            'compact': compact,
+            'non_compact': updated
+        }
+            
+
     @classmethod
     def _compactify(clas, sad: dict, label: str = Saids.d):
         """
@@ -3616,151 +3746,26 @@ class Saider(Matter):
         Returns:
             dict: The compacted dictionary with values replaced by their `label` values if available.
         """
-        compacted = {}
-
         def recursive_compact(value):
             # If it's a dictionary, check for `label` and recursively process its values.
             if isinstance(value, dict):
                 if label in value:
-                    return value[label]  # Collapse to the specified label's value if it exists.
+                    # Return the value of the label if found, as we are at a leaf level
+                    return value[label]
                 else:
+                    # Recursively process each key-value pair in the dictionary
                     return {k: recursive_compact(v) for k, v in value.items()}
-            # If it's a list, apply recursive compact to each element in the list.
             elif isinstance(value, list):
+                # Apply recursive compact to each element in the list
                 return [recursive_compact(item) for item in value]
             else:
-                return value  # Return the value as-is if it's neither a dict nor a list.
+                # Return the value as-is if it's neither a dictionary nor a list
+                return value
 
         # Start the compact process from the root dictionary
-        for key, value in sad.items():
-            compacted[key] = recursive_compact(value)
+        compacted = {key: recursive_compact(value) for key, value in sad.items()}
 
         return compacted
-
-
-    @classmethod
-    def _saidify(clas,
-                sad: dict,
-                *,
-                code: str = MtrDex.Blake3_256,
-                kind: str = None,
-                label: str = Saids.d,
-                ignore: list = None, **kwa):
-        """
-        Recursively computes and injects SAID (Self-Addressing Identifier) values for
-        nested structures within a dictionary (sad) by replacing the specified label's value
-        at each level with a computed SAID. The final SAID of the entire structure is derived,
-        compacted, and injected into the top-level dictionary.
-
-        Parameters:
-            sad (dict): The input dictionary to process for SAID generation and injection.
-            code (str): Digest type code for SAID derivation, from DigDex (default: MtrDex.Blake3_256).
-            kind (str): Serialization format for SAID calculation, overriding 'v' field in `sad`
-                        if specified. Defaults to Serials.json.
-            label (str): Field name in which to inject the computed SAID. Defaults to 'd' (as per Saids).
-            ignore (list): List of fields to ignore when generating the SAID for a given dictionary.
-
-        Returns:
-            dict: A dictionary containing:
-                - 'final_said': The final SAID for the entire structure (top-level dictionary).
-                - 'compact_raw': Raw representation of the final compacted dictionary used to derive SAID.
-                - 'compact_sad': Compacted dictionary (`sad`) with the top-level label injected with final SAID.
-                - 'complete': Fully updated dictionary with all SAIDs recursively injected at each level.
-                - 'paths': List of paths to each SAID location, sorted deepest to shallowest.
-                - 'raws': Mapping of each path to its raw, pre-SAID compacted content.
-                - 'sads': Mapping of parent paths to their respective dictionaries.
-                - 'saiders': Mapping of each path to its computed Saider instance.
-                - 'path_saids': Mapping of each path to its SAID in `qb64` format.
-
-        Raises:
-            KeyError: If the specified label field is missing from the input `sad`.
-
-        """
-        if label not in sad:
-                raise KeyError("Missing id field labeled={} in sad.".format(label))
-        
-        # return data for debug data 
-        ## TODO change to return [saider], [sad]?
-        paths = []
-        raws = {}
-        sads = {}
-        saiders = {}
-        path_saids = {}
-
- 
-        def recurse_saidify(clas,
-                sad: dict,
-                path: str="",
-                *,
-                code: str = MtrDex.Blake3_256,
-                kind: str = None,
-                label: str = Saids.d,
-                ignore: list = None, **kwa):
-            if isinstance(sad, dict):
-                updated_dict = {}
-                for key, value in sad.items():
-                    current_path = f"{path}.{key}" if path else key
-                    if key == label:
-                        # Compute SAID for the current nested structure
-                        compacted = clas._compactify(sad, label)
-                        raw, sad = clas._derive(sad=compacted, code=code, kind=kind, label=label, ignore=ignore)
-                        saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, **kwa)
-                        sad[label] = saider.qb64
-                        updated_dict[key] = saider.qb64
-                       
-                        # Elements to debug data
-                        paths.append(current_path)
-                        raws[current_path] = raw
-                        sads['.'.join(current_path.split('.')[:-1])] = sad
-                        saiders[current_path] = saider
-                        path_saids[current_path] = saider.qb64
-                    else:
-                        # Recursively process nested dictionaries or lists
-                        updated_dict[key] = recurse_saidify(clas, value, current_path,code=code, kind=kind, label=label, ignore=ignore)
-                return updated_dict
-            elif isinstance(sad, list):
-                # pass
-                return [recurse_saidify(clas, item, f"{path}[{i}]", code=code, kind=kind, label=label)  \
-                        for i, item in enumerate(sad)]
-            else:
-                # pass
-                return sad
-            
-            
-        # Start recursive replacement
-        updated_dict = recurse_saidify(clas, sad, path="", code=code, kind=kind, label=label, ignore=ignore)
-        
-        # Ensure final sad is compact
-        compacted = clas._compactify(sad, label)
-        
-        # calculate the final said
-        raw, sad = clas._derive(sad=compacted, code=code, kind=kind, label=label, ignore=ignore)
-        saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, **kwa)
-        sad[label] = saider.qb64
-
-
-        # complete version
-        updated_dict[label] = saider.qb64
-
-        # ## update the version field to the compact version calculation ?
-        # if 'v' in sad:
-        #     updated_dict['v'] = sad['v']
-
-        
-         # Sort paths by depth (deepest paths first)
-        paths.sort(key=lambda x: x.count('.'), reverse=True)
-
-        return {
-            'final_said': saider.qb64,
-            'compact_raw': raw,
-            'compact_sad': sad,
-            'non_compact': updated_dict,
-            'paths': paths,
-            'raws': raws,
-            'sads': sads,
-            'saiders': saiders,
-            'path_saids': path_saids,
-        }
 
 
     def verify(self, sad, *, prefixed=False, versioned=True, code=None,
