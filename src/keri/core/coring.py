@@ -3707,7 +3707,36 @@ class Saider(Matter):
                 kind: str = None,
                 label: str = Saids.d,
                 ignore: list = None, **kwa):
-        
+        """
+        Recursively calculates and injects SAID (Self-Addressing Identifier) values for specified paths
+        within a nested dictionary (SAD) structure. Paths are mapped based on a target label (e.g., 'd') and
+        compacted by replacing nested structures with their SAID values at each specified depth.
+
+        Parameters:
+            sad (dict): The source nested dictionary (SAD) to process.
+            code (str): The digest type code used for SAID derivation (default: MtrDex.Blake3_256).
+            kind (str): Serialization format to override the SAD's 'v' field if specified.
+            label (str): Field name used to locate and collapse structures (default: 'd').
+            ignore (list): Optional list of fields to exclude from SAID calculations.
+            **kwa: Additional keyword arguments passed to helper methods as needed.
+
+        Returns:
+            dict: A dictionary containing:
+                - 'paths' (list): Paths to each location with the specified label.
+                - 'sads' (dict): SAD structures by path after recursive SAID injections.
+                - 'saiders' (dict): SAID values by path after recursive injections.
+                - 'compact' (dict): Final compacted version of SAD with SAIDs replacing nested structures.
+                - 'non_compact' (dict): Updated SAD without collapsing, showing all original nested structures.
+
+        Process:
+            1. Maps paths in `sad` with the specified label using `_map_paths_to_label`.
+            2. Recursively processes each path, collapsing nested objects at each depth.
+            3. Computes SAID values for each specified path, replacing the nested structure with its SAID value.
+            4. Returns both compacted and non-compacted SAD versions, with path mappings for further analysis.
+
+        Raises:
+            KeyError: If the label specified is missing in the provided SAD.
+        """
         # first map the paths that need to be collapesed.
         ## todo add ignore
         paths = clas._map_paths_to_label(sad,label= label) #, ignore = ignore)
