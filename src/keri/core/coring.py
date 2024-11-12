@@ -3507,7 +3507,8 @@ class Saider(Matter):
 
         """
         knd = Kinds.json
-        if 'v' in sad:  # versioned sad
+        ## updated check if v is first
+        if 'v' in sad and clas._v_is_first(sad):  # versioned sad
             _, _, knd, _, _ = deversify(sad['v'])
 
         if not kind:  # match logic of Serder for kind
@@ -3579,7 +3580,9 @@ class Saider(Matter):
         sad = dict(sad)  # make shallow copy so don't clobber original sad
         # fill id field denoted by label with dummy chars to get size correct
         sad[label] = clas.Dummy * Matter.Sizes[code].fs
-        if 'v' in sad:  # if versioned then need to set size in version string
+
+        ## UPDATED CHECK IF V IS FIRST
+        if 'v' in sad and clas._v_is_first( sad): # if versioned then need to set size in version string
             raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind)
 
         ser = dict(sad)
@@ -3608,7 +3611,23 @@ class Saider(Matter):
         code = code if code is not None else self.code
         return self._derive(sad=sad, code=code, **kwa)
 
-   
+    @classmethod
+    def _v_is_first(cls,data, key='v'):
+        """
+        Checks if the specified key is the first key in the dictionary.
+
+        Parameters:
+            data (dict): The dictionary to check.
+            key: The key to check if it's at index 0. Defaults to 'v'.
+
+        Returns:
+            bool: True if the specified key is the first key, False otherwise.
+        """
+        if not isinstance(data, dict):
+            raise ValueError("Input data must be a dictionary.")
+        
+        keys = list(data.keys())
+        return keys[0] == key if keys else False
 
     @classmethod
     def _map_paths_to_label(cls, data, label='d'):
@@ -3680,7 +3699,7 @@ class Saider(Matter):
     
 
     @classmethod
-    def _replace_nested_object(cls, data, path, new_obj):
+    def _replace_nested_object(cls, data:dict, path:list, new_obj):
         """
         Replaces a nested object within a dictionary or list with a new object, based on a specified path,
         without compacting any part of the structure.
@@ -3715,7 +3734,7 @@ class Saider(Matter):
 
         return True
     @classmethod
-    def _saidify(cls, sad, *, code='Blake3_256', kind=None, label='d', ignore=None, **kwargs):
+    def _saidify(cls, sad, *, code=MtrDex.Blake3_256, kind=None, label='d', ignore=None, **kwargs):
         """
         Calculates and injects SAID values for specified paths within a nested dictionary (SAD) structure.
         Produces both compacted and non-compacted versions of the SAD.
@@ -3730,7 +3749,8 @@ class Saider(Matter):
         Returns:
             dict: Contains 'paths', 'sads', 'saiders', 'compact', and 'non_compact' versions of the SAD.
         """
-        def _deepcopy(data):
+        
+        def _deepcopy(data:dict):
             """
             Recursively creates a deep copy of a dictionary or list structure.
 
@@ -3749,15 +3769,16 @@ class Saider(Matter):
             else:
                 # For primitive types (int, str, float, etc.), return the value directly
                 return data
+        
+        def _join(a):
+            return '.'.join(map(str, a))
 
         paths = cls._map_paths_to_label(sad, label=label)  # Map paths to the specified label
-        updated = _deepcopy(sad)#.copy()
+        non_compact = _deepcopy(sad)#.copy()
         compact = _deepcopy(sad)#.copy()
         sads = {}
         saiders = {}
 
-        def _join(a):
-            return '.'.join(map(str, a))
 
         for path in paths:
             parent, current = cls._get_nested_object_and_parent(compact, path)
@@ -3766,15 +3787,15 @@ class Saider(Matter):
 
             # Calculate SAID for the current object
             if label in parent:
-                _sad = cls.saidify(parent, label=label)
+                _sad = cls.saidify(parent, label=label, code=code, kind=kind, ignore=ignore)
             else:
                 _sad = parent
 
-            sads[_join(path[:-1])] = _sad[1]
             saiders[_join(path)] = _sad[0]
+            sads[_join(path[:-1])] = _sad[1]
             
             # Update `non_compact` only at the specific field level
-            cls._replace_nested_object(updated, path, _sad[0].qb64)
+            cls._replace_nested_object(non_compact, path, _sad[0].qb64)
             
             # For `compact`, replace the entire nested structure as per SAID path requirements
             if len(path[:-1]) > 0:
@@ -3787,7 +3808,7 @@ class Saider(Matter):
             'sads': sads,
             'saiders': saiders,
             'compact': compact,
-            'non_compact': updated
+            'non_compact': non_compact
         }
 
             
