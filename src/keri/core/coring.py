@@ -3435,10 +3435,10 @@ class Saider(Matter):
         _compactify (types.MethodType): recursively compacts nested dictionaries 
                                         on label if it exists (sad)
         _saidify (types.MethodType): recursively derives said (.qb64 )
-        _map_paths_to_label (types.MethodType): find all leaves with said label ([[list]])
-        _get_nested_object_and_parent (types.MethodType): retrieve nested struct from array of field-labels
+        _mapPathsToLabel (types.MethodType): find all leaves with said label ([[list]])
+        _getNestedObjectAndParent (types.MethodType): retrieve nested struct from array of field-labels
                                         (dict)
-        _replace_nested_object (types.MethodType): replace nested struct from array of field-labels
+        _replaceNestedObject (types.MethodType): replace nested struct from array of field-labels
                                         (sad)
 
     """
@@ -3508,7 +3508,7 @@ class Saider(Matter):
         """
         knd = Kinds.json
         ## updated check if v is first
-        if 'v' in sad and clas._v_is_first(sad):  # versioned sad
+        if 'v' in sad and clas._vIsFirst(sad):  # versioned sad
             _, _, knd, _, _ = deversify(sad['v'])
 
         if not kind:  # match logic of Serder for kind
@@ -3582,7 +3582,7 @@ class Saider(Matter):
         sad[label] = clas.Dummy * Matter.Sizes[code].fs
 
         ## UPDATED CHECK IF V IS FIRST
-        if 'v' in sad and clas._v_is_first( sad): # if versioned then need to set size in version string
+        if 'v' in sad and clas._vIsFirst( sad): # if versioned then need to set size in version string
             raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind)
 
         ser = dict(sad)
@@ -3612,7 +3612,7 @@ class Saider(Matter):
         return self._derive(sad=sad, code=code, **kwa)
 
     @classmethod
-    def _v_is_first(cls,data, key='v'):
+    def _vIsFirst(cls,data, key='v'):
         """
         Checks if the specified key is the first key in the dictionary.
 
@@ -3630,7 +3630,7 @@ class Saider(Matter):
         return keys[0] == key if keys else False
 
     @classmethod
-    def _map_paths_to_label(cls, data, label='d'):
+    def _mapPathsToLabel(cls, data, label='d'):
         """
         Recursively finds paths to all leaves with a specified label in a nested dictionary or list.
 
@@ -3666,7 +3666,7 @@ class Saider(Matter):
         return paths
 
     @classmethod
-    def _get_nested_object_and_parent(cls, data, path):
+    def _getNestedObjectAndParent(cls, data, path):
         """
         Retrieves a nested object and its parent from a dictionary or list by following a path represented by a list of keys.
 
@@ -3699,7 +3699,7 @@ class Saider(Matter):
     
 
     @classmethod
-    def _replace_nested_object(cls, data:dict, path:list, new_obj):
+    def _replaceNestedObject(cls, data:dict, path:list, new_obj):
         """
         Replaces a nested object within a dictionary or list with a new object, based on a specified path,
         without compacting any part of the structure.
@@ -3750,7 +3750,7 @@ class Saider(Matter):
             dict: Contains 'paths', 'sads', 'saiders', 'compact', and 'non_compact' versions of the SAD.
         """
         
-        def _deepcopy(data:dict):
+        def deepcopy(data:dict):
             """
             Recursively creates a deep copy of a dictionary or list structure.
 
@@ -3762,26 +3762,26 @@ class Saider(Matter):
             """
             if isinstance(data, dict):
                 # Recursively deep copy each key-value pair in the dictionary
-                return {key: _deepcopy(value) for key, value in data.items()}
+                return {key: deepcopy(value) for key, value in data.items()}
             elif isinstance(data, list):
                 # Recursively deep copy each element in the list
-                return [_deepcopy(element) for element in data]
+                return [deepcopy(element) for element in data]
             else:
                 # For primitive types (int, str, float, etc.), return the value directly
                 return data
         
-        def _join(a):
+        def pathJoin(a):
             return '.'.join(map(str, a))
 
-        paths = cls._map_paths_to_label(sad, label=label)  # Map paths to the specified label
-        non_compact = _deepcopy(sad)#.copy()
-        compact = _deepcopy(sad)#.copy()
+        paths = cls._mapPathsToLabel(sad, label=label)  # Map paths to the specified label
+        non_compact = deepcopy(sad)#.copy()
+        compact = deepcopy(sad)#.copy()
         sads = {}
         saiders = {}
 
 
         for path in paths:
-            parent, current = cls._get_nested_object_and_parent(compact, path)
+            parent, current = cls._getNestedObjectAndParent(compact, path)
             if parent is None or current is None:
                 continue
 
@@ -3791,15 +3791,15 @@ class Saider(Matter):
             else:
                 _sad = parent
 
-            saiders[_join(path)] = _sad[0]
-            sads[_join(path[:-1])] = _sad[1]
+            saiders[pathJoin(path)] = _sad[0]
+            sads[pathJoin(path[:-1])] = _sad[1]
             
             # Update `non_compact` only at the specific field level
-            cls._replace_nested_object(non_compact, path, _sad[0].qb64)
+            cls._replaceNestedObject(non_compact, path, _sad[0].qb64)
             
             # For `compact`, replace the entire nested structure as per SAID path requirements
             if len(path[:-1]) > 0:
-                cls._replace_nested_object(compact, path[:-1], _sad[0].qb64)
+                cls._replaceNestedObject(compact, path[:-1], _sad[0].qb64)
             else:
                 compact = _sad[1]
 
@@ -3825,7 +3825,7 @@ class Saider(Matter):
         Returns:
             dict: The compacted dictionary with values replaced by their `label` values if available.
         """
-        def recursive_compact(value):
+        def recursiveCompact(value):
             # If it's a dictionary, check for `label` and recursively process its values.
             if isinstance(value, dict):
                 if label in value:
@@ -3833,16 +3833,16 @@ class Saider(Matter):
                     return value[label]
                 else:
                     # Recursively process each key-value pair in the dictionary
-                    return {k: recursive_compact(v) for k, v in value.items()}
+                    return {k: recursiveCompact(v) for k, v in value.items()}
             elif isinstance(value, list):
                 # Apply recursive compact to each element in the list
-                return [recursive_compact(item) for item in value]
+                return [recursiveCompact(item) for item in value]
             else:
                 # Return the value as-is if it's neither a dictionary nor a list
                 return value
 
         # Start the compact process from the root dictionary
-        compacted = {key: recursive_compact(value) for key, value in sad.items()}
+        compacted = {key: recursiveCompact(value) for key, value in sad.items()}
 
         return compacted
 
