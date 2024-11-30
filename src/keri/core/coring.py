@@ -3,7 +3,6 @@
 keri.core.coring module
 
 """
-import re
 import json
 from typing import Union
 from collections import namedtuple, deque
@@ -3523,6 +3522,7 @@ class Saider(Matter):
                 code: str = MtrDex.Blake3_256,
                 kind: str = None,
                 label: str = Saids.d,
+                compactify: bool = None,
                 ignore: list = None, **kwa):
         """
         Derives said from sad and injects it into copy of sad and said and
@@ -3541,13 +3541,28 @@ class Saider(Matter):
                         used to override that given by 'v' field if any in sad
                         otherwise default is Serials.json
             label (str): Saidage value as said field label in which to inject said
+            compactify (bool): to compute compactified sads and saiders
+                                if None determine by v field ( True if major 2 )
             ignore (list): fields to ignore when generating SAID
 
         """
         if label not in sad:
             raise KeyError("Missing id field labeled={} in sad.".format(label))
+        
+        ## check if compactify is None; if it is see if v and v major is 2
+        if compactify is None:
+            ## smell version:
+            if 'v' in sad and clas._vIsFirst(sad):
+                sml = smell(clas._serialize(sad))
+                if sml.vrsn.major == 2:
+                    compactify = True
+            else:
+                compactify = False
+        
         raw, sad = clas._derive(sad=sad, code=code, kind=kind, label=label, ignore=ignore)
-        saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, **kwa)
+        if compactify and clas._vIsFirst(sad):
+            return clas._saidify(sad=sad, code=code, kind=kind, label=label, ignore=ignore, root=True,**kwa)
+        saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, compactify= compactify, **kwa)
         sad[label] = saider.qb64
         return saider, sad
 
@@ -3583,7 +3598,9 @@ class Saider(Matter):
 
         ## UPDATED CHECK IF V IS FIRST
         if 'v' in sad and clas._vIsFirst( sad): # if versioned then need to set size in version string
-            raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind)
+            sml = smell(clas._serialize(sad))
+            ## ??? pass in version from smell?
+            raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind, version=sml.vrsn)
 
         ser = dict(sad)
         if ignore:  # delete ignore fields in said calculation from ser dict
@@ -3734,7 +3751,7 @@ class Saider(Matter):
 
         return True
     @classmethod
-    def _saidify(cls, sad, *, code=MtrDex.Blake3_256, kind=None, label='d', ignore=None, **kwargs):
+    def _saidify(cls, sad, *, code=MtrDex.Blake3_256, kind=None, label='d', ignore=None, root=False,**kwargs):
         """
         Calculates and injects SAID values for specified paths within a nested dictionary (SAD) structure.
         Produces both compacted and non-compacted versions of the SAD.
@@ -3744,6 +3761,7 @@ class Saider(Matter):
             code (str): The digest type code used for SAID derivation.
             kind (str): Serialization format to override the SAD's 'v' field if specified.
             label (str): Field name used to locate and collapse structures.
+            root (bool): True if is root of sad. For limiting recurse to _saidify.
             ignore (list): Optional list of fields to exclude from SAID calculations.
 
         Returns:
@@ -3786,8 +3804,9 @@ class Saider(Matter):
                 continue
 
             # Calculate SAID for the current object
-            if label in parent:
-                _sad = cls.saidify(parent, label=label, code=code, kind=kind, ignore=ignore)
+            if label in parent: 
+                 #  not root -> compactify, only set compactify once. this is confusing.
+                _sad = cls.saidify(parent, label=label, code=code, kind=kind, ignore=ignore,compactify= (not root))
             else:
                 _sad = parent
             saiders[pathJoin(path)] = _sad[0]
@@ -3804,7 +3823,8 @@ class Saider(Matter):
 
         # Replace the version field for parsing length on non_compact 
         if 'v' in non_compact and cls._vIsFirst( non_compact): 
-            raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind)
+            sml = smell(cls._serialize(non_compact))
+            raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind, version=sml.vrsn)
             non_compact = sad
         ## ensure compact has non-compact said
         non_compact[label] = compact[label]
