@@ -3558,9 +3558,9 @@ class Saider(Matter):
                     compactify = True
             else:
                 compactify = False
-        
         raw, sad = clas._derive(sad=sad, code=code, kind=kind, label=label, ignore=ignore)
-        if compactify and clas._vIsFirst(sad):
+        if compactify: # and clas._vIsFirst(sad):
+            print(3565)
             return clas._saidify(sad=sad, code=code, kind=kind, label=label, ignore=ignore, root=True,**kwa)
         saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, compactify= compactify, **kwa)
         sad[label] = saider.qb64
