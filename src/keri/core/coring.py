@@ -3790,7 +3790,6 @@ class Saider(Matter):
                 _sad = cls.saidify(parent, label=label, code=code, kind=kind, ignore=ignore)
             else:
                 _sad = parent
-
             saiders[pathJoin(path)] = _sad[0]
             sads[pathJoin(path[:-1])] = _sad[1]
             
@@ -3802,6 +3801,13 @@ class Saider(Matter):
                 cls._replaceNestedObject(compact, path[:-1], _sad[0].qb64)
             else:
                 compact = _sad[1]
+
+        # Replace the version field for parsing length on non_compact 
+        if 'v' in non_compact and cls._vIsFirst( non_compact): 
+            raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind)
+            non_compact = sad
+        ## ensure compact has non-compact said
+        non_compact[label] = compact[label]
 
         return {
             'paths': paths,
