@@ -4867,10 +4867,10 @@ def test_saider():
     saider, sad = Saider.saidify(sad=dict(sad1), label=label)  # default code
     assert saider.code == code == MtrDex.Blake3_256
     assert saider.qb64 == said0
-    assert sad != sad1
+    assert sad.ked != sad1
     assert not sad1[label]
-    assert sad[label] == said0
-    assert saider.verify(sad, prefixed=True, label=label)
+    assert sad.ked[label] == said0
+    assert saider.verify(sad.ked, prefixed=True, label=label)
 
     # Use different code not the default
     code = MtrDex.Blake2b_256
@@ -4917,8 +4917,8 @@ def test_saider():
     assert saider.qb64 == said2
     assert sad != sad1
     assert not sad1[label]
-    assert sad[label] == said2
-    assert saider.verify(sad, prefixed=True, label=label)
+    assert sad.ked[label] == said2
+    assert saider.verify(sad.ked, prefixed=True, label=label)
     assert saider.verify(sad1, prefixed=False, label=label)  # kind default
     assert not saider.verify(sad1, prefixed=True, label=label)  # kind default
     assert saider.verify(sad2, prefixed=True, label=label)  # kind default
@@ -4984,9 +4984,9 @@ def test_saider():
     assert saider.qb64 == said3
     assert sad != sad4
     assert not sad4[label]
-    assert sad[label] == said3
+    assert sad.ked[label] == said3
 
-    assert saider.verify(sad, prefixed=True)  # default kind label
+    assert saider.verify(sad.ked, prefixed=True)  # default kind label
     assert not saider.verify(sad4, prefixed=True)  # kind and label default
     assert not saider.verify(sad4, prefixed=False)  # kind and label default
     assert saider.verify(sad4, prefixed=False, versioned=False)  # kind and label default
@@ -5000,13 +5000,13 @@ def test_saider():
     assert not saider.verify(sad3, prefixed=True)
     saider, sad7 = Saider.saidify(sad=sad3, code=MtrDex.Blake2b_256)
     assert saider.qb64 != said3
-    assert saider.verify(sad7, prefixed=True)
+    assert saider.verify(sad7.ked, prefixed=True)
 
     assert saider.verify(sad4, prefixed=False, versioned=False)  # kind and label default
     assert not saider.verify(sad4, prefixed=True)  # kind and label default
     saider, sad8 = Saider.saidify(sad=sad4, code=MtrDex.Blake2b_256)
     assert saider.qb64 != said3
-    assert saider.verify(sad8, prefixed=True)
+    assert saider.verify(sad8.ked, prefixed=True)
 
     # verify gets kind from version string if provided when loading from dict
     vs = versify(version=Version, kind=Kinds.mgpk, size=0)  # vaccuous size == 0
@@ -5023,7 +5023,7 @@ def test_saider():
     assert not saider.verify(sad3, prefixed=True)
     saider, sad10 = Saider.saidify(sad=sad9)
     assert saider.qb64 == said9
-    assert saider.verify(sad10, prefixed=True)
+    assert saider.verify(sad10.ked, prefixed=True)
 
     # ignore some fields from SAID calculation
     sad = dict(
@@ -5038,18 +5038,46 @@ def test_saider():
 
     saider2, sad2 = Saider.saidify(sad=sad, ignore=["read"])
     assert saider2.qb64 == saider1.qb64
-    assert sad2["d"] == saider2.qb64 == saider1.qb64
-    assert sad2["read"] is False
+    assert sad2.ked["d"] == saider2.qb64 == saider1.qb64
+    assert sad2.ked["read"] is False
 
-    assert saider1.verify(sad=sad2, prefixed=True, ignore=["read"]) is True
+    assert saider1.verify(sad=sad2.ked, prefixed=True, ignore=["read"]) is True
 
     # Change the 'read' field that is ignored and make sure it still verifies
-    sad2["read"] = True
-    assert saider1.verify(sad=sad2, prefixed=True, ignore=["read"]) is True
+    sad2.ked["read"] = True
+    assert saider1.verify(sad=sad2.ked, prefixed=True, ignore=["read"]) is True
 
-    saider3 = Saider(sad=sad2, ignore=["read"])
+    saider3 = Saider(sad=sad2.ked, ignore=["read"])
     assert saider3.qb64 == saider2.qb64
-    assert sad2["read"] is True
+    assert sad2.ked["read"] is True
+
+    acdc_test = b'{"v":"ACDCCAAJSONAAkE.","d":"EEIJU71Jo7pJKZWgDnlVdppgRjJsCF2zLmX_OSWgQo2_","i":"EKXPX7hWw8KK5Y_Mxs2TOuCrGdN45vPIZ78NofRlVBws","rd":"EuqwB_iOD86eK0ynAhA6AYwWvPeBhvmbcmOD-9cCmiVU","s":"ELG17Q0M-uLZcjidzVbF7KBkoUhZa1ie3Az3Q_8aYi8s","a":{"d":"EFY3EkE7moK-hHQNkfoGx48QwFRV4bHlviTbOgbvRftP","dt":"2022-08-25T14:07:30.536257+00:00","i":"EY4ldIBDZP4Tpnm3RX320BO0yz8Uz2nUSN-C409GnCJM","AID":"Esf8b_AngI1d0KbOFjPGIfpVani0HTagWeaYTLs14PlE","LEI":"6383001AJTYIGC8Y1X37","personLegalName":"John Smith","engagementContextRole":"Chief Executive Officer","D":{"d":"EHpMHBSiFG475VJYutgT9WhccSjbtJo7sGfpk86tvN__","le":{"n":"ESyLzoJC4L_1abXOEN4f6uNZCmhqyEHg2geBHFhJ8KDs","s":"ENPXp1vQzRF6JwIuS-mp2U8Uf1MoADoP_GqQ62VsDZWY","random":"something"}}},"e":{"d":"EPEeGpDroK50eKwPBfLuSgkvEKiEAzDN6mkskS9pjdYy","le":{"n":"ESyLzoJC4L_1abXOEN4f6uNZCmhqyEHg2geBHFhJ8KDs","s":"ENPXp1vQzRF6JwIuS-mp2U8Uf1MoADoP_GqQ62VsDZWY"}},"r":{"d":"EKHMDCNFlMBaMdDOq5Pf_vGMxkTqrDMrTx_28cZZJCcW","usageDisclaimer":{"l":"Usage of a valid, unexpired, and non-revoked vLEI Credential, as defined in the associated Ecosystem Governance Framework, does not assert that the Legal Entity is trustworthy, honest, reputable in its business dealings, safe to do business with, or compliant with any laws or that an implied or expressly intended purpose will be fulfilled."},"issuanceDisclaimer":{"l":"All information in a valid, unexpired, and non-revoked vLEI Credential, as defined in the associated Ecosystem Governance Framework, is accurate as of the date the validation process was complete. The vLEI Credential has been issued to the legal entity or person named in the vLEI Credential as the subject; and the qualified vLEI Issuer exercised reasonable care to perform the validation process set forth in the vLEI Ecosystem Governance Framework."},"privacyDisclaimer":{"l":"Privacy Considerations are applicable to QVI ECR AUTH vLEI Credentials.  It is the sole responsibility of QVIs as Issuees of QVI ECR AUTH vLEI Credentials to present these Credentials in a privacy-preserving manner using the mechanisms provided in the Issuance and Presentation Exchange (IPEX) protocol specification and the Authentic Chained Data Container (ACDC) specification.  https://github.com/WebOfTrust/IETF-IPEX and https://github.com/trustoverip/tswg-acdc-specification."}}}'
+
+    acdc_ked = coring.loads(acdc_test)
+    saiders, sads = Saider.saidify(acdc_ked)
+    assert len(saiders) == len(sads)
+    num_saiders = len(saiders)
+    for i in range(num_saiders):
+        sad = sads[i]
+        saider = saiders[i]
+        assert saider.path == sad.path
+        assert len(sad.raw) == sad.size
+        assert saider.qb64 == sad.said
+        assert coring.loads(sad.raw) ==  sad.ked
+        assert sad.said == sad.ked[sad.label]
+        print(sad.path)
+        if '__FULL_COMPLIANT__' not in sad.path:
+            assert saider.verify(sad.ked, prefixed=True) is True
+            _saider, _sad = Saider.saidify(sad.ked, labal=sad.label, compactify=False)
+            assert _saider.qb64 == saider.qb64 == sad.ked[sad.label]
+        if sad.path == '__FULL_COMPLIANT__':
+            last_sad = sads[i-1]
+            last_saider = saiders[i-1]
+            assert last_sad.path == [sad.label]
+            assert last_saider.path == [sad.label]
+            assert last_saider.qb64 == saider.qb64 == sad.ked[sad.label] == sad.said
+
+            
 
     """Done Test"""
 

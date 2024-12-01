@@ -42,7 +42,7 @@ def test_json_schema():
     # generate serialized saidified schema ssad
     saider, ssad = Saider.saidify(ssad, label=Saids.dollar)
     assert saider.qb64 == 'EMRvS7lGxc1eDleXBkvSHkFs8vUrslRcla6UXOJdcczw'
-    sser = dumps(ssad)
+    sser = dumps(ssad.ked)
     assert sser == (b'{"$id":"EMRvS7lGxc1eDleXBkvSHkFs8vUrslRcla6UXOJdcczw","$schema":"http://json'
         b'-schema.org/draft-07/schema#","type":"object","properties":{"a":{"type":"str'
         b'ing"},"b":{"type":"number"},"c":{"type":"string","format":"date-time"}}}')
@@ -215,7 +215,7 @@ def test_resolution():
     saider, refsad = Saider.saidify(refsad, label=Saids.dollar)
     refsaid = saider.qb64
     assert refsaid == 'EL3Luusa97P8dZOCI8KEN2ShG35HVS8S6-z1vuu52F-C'
-    ref = dumps(refsad)
+    ref = dumps(refsad.ked)
 
     ssad = \
     {
@@ -250,7 +250,7 @@ def test_resolution():
     saider, ssad = Saider.saidify(ssad, label=Saids.dollar)
     said = saider.qb64
     assert said == 'EKcRFuOiLUMEgTljL8FWPOpDosH2Cz38HhgdmRKpUHTe'
-    sser = dumps(ssad)
+    sser = dumps(ssad.ked)
     assert sser ==  (b'{"$id":"EKcRFuOiLUMEgTljL8FWPOpDosH2Cz38HhgdmRKpUHTe","$schema":"http://json'
                     b'-schema.org/draft-07/schema#","type":"object","properties":{"a":{"type":"str'
                     b'ing"},"b":{"type":"number"},"c":{"type":"string","format":"date-time"},"xy":'

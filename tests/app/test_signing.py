@@ -26,6 +26,7 @@ def test_sad_signature(seeder, mockCoringRandomNonce, mockHelpingNowIso8601):
         )
 
         _, sad = coring.Saider.saidify(sad=personal, label=coring.Saids.d)
+        sad = sad.ked
 
         d = dict(
             ri="EBmRy7xMwsxUelUauaXtMxTfPAMPAI6FkekwlOjkggt",

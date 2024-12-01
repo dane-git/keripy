@@ -1254,6 +1254,7 @@ def test_cesr_ioset_suber():
                              ),
                    )
         saider0, sad0 = coring.Saider.saidify(sad=sad)
+        sad0 = sad0.ked
         said0 = saider0.qb64
         assert said0 == 'EKwVGsUU1sUlYRq_g2Z3_3GOIREYtlQ3kPSNjpg8w4j0'
         assert sad0 == {'v': 'KERI10JSON0000b8_',
@@ -1275,6 +1276,7 @@ def test_cesr_ioset_suber():
                              ),
                    )
         saider1, sad1 = coring.Saider.saidify(sad=sad)
+        sad1 = sad1.ked
         said1 = saider1.qb64
         assert said1 == 'EPl1dMAs2RDsZ12K3yxA0fTHP6dRJzDkStf65VVeFxne'
 
@@ -1291,6 +1293,7 @@ def test_cesr_ioset_suber():
                              ),
                    )
         saider2, sad2 = coring.Saider.saidify(sad=sad)
+        sad2 = sad2.ked
         said2 = saider2.qb64
         assert said2 == 'EJxOaEsBSObrcmrsnlfHOdVAowGhUBKoE2Ce3TZ4Mhgu'
 

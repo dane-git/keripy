@@ -610,6 +610,7 @@ class Serder:
                     pass  # ignore if bytes
 
             if verify:  # verify fields including the said(s) provided in raw
+                print(613)
                 try:
                     self._verify()  # raises exception when not verify
                 except Exception as ex:
@@ -762,9 +763,11 @@ class Serder:
 
         # compute saidive digestive field values using raw from sized dummied sad
         raw = self.dumps(sad, kind=self.kind)  # serialize dummied sad copy
+        print('saids', saids)
         for label, code in saids.items():
             if code in DigDex:  # subclass override if non digestive allowed
                 dig = Diger(ser=raw, code=code).qb64
+                print('dig', dig)
                 if dig != self._sad[label]:  # compare to original
                     raise ValidationError(f"Invalid said field '{label}' in sad"
                                           f" = {self._sad}, should be {dig}.")

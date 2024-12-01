@@ -84,12 +84,25 @@ def sizeify(ked, kind=None, version=Version):
 
     Assumes only supports Version
     """
-    if "v" not in ked:
+
+    if "v" not in ked and version is not None:
         raise ValueError("Missing or empty version string in key event "
                          "dict = {}".format(ked))
-
+    
+    # TODO this is messy and confusing.
+    if "v" not in ked and version is None:
+        
+        ## TODO detect kind from serialized
+        if kind is None:
+            kind = 'JSON'
+        if kind not in Kinds:
+            raise ValueError("Invalid serialization kind = {}".format(kind))
+        raw = dumps(ked, kind)
+        size = len(raw)
+        return raw, None, kind, ked, None
+    
     proto, vrsn, knd, size, _ = deversify(ked["v"])  # extract kind and version
-    if vrsn != version:
+    if vrsn != version and version is not None:
         raise ValueError("Unsupported version = {}.{}".format(vrsn.major,
                                                               vrsn.minor))
 
@@ -3420,6 +3433,7 @@ class Saider(Matter):
         qb2  (bytes): binary with derivation code + crypto material
         transferable (bool): True means transferable derivation code False otherwise
         digestive (bool): True means digest derivation code False otherwise
+        path (list): The path to the current SAID within a nested structure.
 
     Hidden:
         _code (str): value for .code property
@@ -3444,7 +3458,7 @@ class Saider(Matter):
     Dummy = "#"  # dummy spaceholder char for said. Must not be a valid Base64 char
 
     def __init__(self, raw=None, *, code=None, sad=None,
-                 kind=None, label=Saids.d, ignore=None, **kwa):
+                 kind=None, label=Saids.d, ignore=None, path=None,**kwa):
         """
         See Matter.__init__ for inherited parameters
 
@@ -3457,10 +3471,18 @@ class Saider(Matter):
             ignore (list): fields to ignore when generating SAID
 
         """
+        if path is None:
+            path = []
+        self.path = path
+
         try:
             # when raw and code are both provided
-            super(Saider, self).__init__(raw=raw, code=code, **kwa)
+            super(Saider, self).__init__(raw=raw, code=code,**kwa)
         except EmptyMaterialError as ex:  # raw or code missing
+
+            if isinstance(sad, Sadder ):
+                sad = sad.ked
+
             if not sad or label not in sad:
                 raise ex  # need sad with label field to calculate raw or qb64
 
@@ -3487,7 +3509,24 @@ class Saider(Matter):
         if not self.digestive:
             raise ValueError("Unsupported digest code = {}."
                              "".format(self.code))
+    
+    def copy(self):
+        """
+        Create a deep copy of the current Saider instance.
 
+        Returns:
+            Saider: A new instance with the same attributes as the current one.
+        """
+        # Create a new instance with all attributes copied
+       
+        copied_instance = Saider(
+            path=self.path[:],  # Copy the list to avoid shared reference
+            qb64=self.qb64,  # Strings are immutable; direct copy is fine
+            code=self.code,  # Direct copy for immutable attributes
+            raw=self._raw[:] if isinstance(self._raw, (bytes, bytearray)) else self._raw  # Copy mutable byte data
+        )
+        # Return the new instance
+        return copied_instance
     @classmethod
     def _serialize(clas, sad: dict, kind: str = None):
         """
@@ -3522,18 +3561,25 @@ class Saider(Matter):
                 code: str = MtrDex.Blake3_256,
                 kind: str = None,
                 label: str = Saids.d,
+                path: list = [],
                 compactify: bool = None,
                 ignore: list = None, **kwa):
         """
-        Derives said from sad and injects it into copy of sad and said and
-        injected sad
+        Derives a Self-Addressing Identifier (SAID) from a Self-Addressed Data (SAD) structure 
+        and injects the SAID into a copy of the SAD. Supports both compact and non-compact formats.
+
+        This method processes the input SAD (KED: dict) to compute its SAID based on the provided derivation
+        code and serialization format. The computed SAID is then injected into the SAD at the 
+        specified label field. If the SAD contains nested structures, compactified versions 
+        can also be generated.
 
         Returns:
             result (tuple): of the form (saider, sad) where saider is Saider
-                    instance generated from sad using code and sad is copy of
-                    parameter sad but with its label id field filled
-                    in with generated said from saider
-
+                    instance generated from sad using code (SAID) and sad is a Sadder instance
+                    modified copy of the input SAD with the SAID injected at the specified label.
+                    ** version 2 (or compactify == True) returns:**
+                        - list(Saiders)
+                        - list(Sadders)
         Parameters:
             sad (dict): serializable dict
             code (str): digest type code from DigDex
@@ -3541,8 +3587,10 @@ class Saider(Matter):
                         used to override that given by 'v' field if any in sad
                         otherwise default is Serials.json
             label (str): Saidage value as said field label in which to inject said
+            path (list): The current path in the nested structure for SAID injection.
+                            Defaults to an empty list.
             compactify (bool): to compute compactified sads and saiders
-                                if None determine by v field ( True if major 2 )
+                                if None determine by v field ( True if version major is 2 )
             ignore (list): fields to ignore when generating SAID
 
         """
@@ -3560,10 +3608,12 @@ class Saider(Matter):
                 compactify = False
         raw, sad = clas._derive(sad=sad, code=code, kind=kind, label=label, ignore=ignore)
         if compactify: # and clas._vIsFirst(sad):
-            print(3565)
-            return clas._saidify(sad=sad, code=code, kind=kind, label=label, ignore=ignore, root=True,**kwa)
-        saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, compactify= compactify, **kwa)
+
+            return clas._saidify(sad=sad, code=code, kind=kind, label=label, ignore=ignore, path=path,**kwa)
+        saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, compactify= compactify, path=path, **kwa)
         sad[label] = saider.qb64
+        if not isinstance(sad, Sadder):
+            sad = Sadder(ked=sad, kind=kind, label=label, path=path)#, version=_smell.vrsn)
         return saider, sad
 
 
@@ -3751,22 +3801,40 @@ class Saider(Matter):
 
         return True
     @classmethod
-    def _saidify(cls, sad, *, code=MtrDex.Blake3_256, kind=None, label='d', ignore=None, root=False,**kwargs):
+    def _saidify(cls, sad, *, code=MtrDex.Blake3_256, kind=None, label='d', ignore=None, path=[],**kwargs):
         """
-        Calculates and injects SAID values for specified paths within a nested dictionary (SAD) structure.
-        Produces both compacted and non-compacted versions of the SAD.
+        Computes and injects Self-Addressing Identifiers (SAIDs) for specified paths within a nested SAD (Self-Addressed Data) structure.
+        This method supports both compact and non-compact formats of the SAD and processes deeply nested structures.
 
         Parameters:
-            sad (dict): The source nested dictionary (SAD) to process.
-            code (str): The digest type code used for SAID derivation.
-            kind (str): Serialization format to override the SAD's 'v' field if specified.
-            label (str): Field name used to locate and collapse structures.
-            root (bool): True if is root of sad. For limiting recurse to _saidify.
-            ignore (list): Optional list of fields to exclude from SAID calculations.
+            sad (dict): The Self-Addressed Data (SAD) structure to process, typically a nested dictionary.
+            code (str): The digest type code from `DigDex` used for deriving SAIDs. Defaults to `MtrDex.Blake3_256`.
+            kind (str): The serialization format (e.g., JSON, MGPK). If not provided, it is inferred from the SAD's 'v' (version) field.
+            label (str): The field name in the SAD where the SAID will be injected. Defaults to 'd'.
+            ignore (list): A list of field names to exclude during SAID calculation.
+            path (list): The path within the SAD structure to target for processing. Defaults to an empty list.
+            **kwargs: Additional parameters for further customization.
 
         Returns:
-            dict: Contains 'paths', 'sads', 'saiders', 'compact', and 'non_compact' versions of the SAD.
+            tuple: `(saiders, sads)` where:
+                - `saiders`: A list of `Saider` instances, each corresponding to a computed SAID for a specific path.
+                - `sads`: A list of `Sadder` instances or dictionaries representing the updated SADs with injected SAIDs.
+
         """
+        ## CONFUSING NOTE:  
+        ### Not sure how to handle the __FULL_COMPLIANT__ (path) ked and the __FULL__ (path) ked:
+        ### __FULL_COMPLIANT__: 
+        ###     -  has the correct verstion string for its major version and length
+        ###     -  contains the most compact final SAID of the struct in its ked[label]
+        ###         > this is the only way I can see to have ONE said for a 
+        ###         >  compactified ACDC and other ked.
+        ###         > To confirm the said at for this, you first need to compactify using 
+        ###         >  the computed saids and compact using depth first search
+        ###
+        ### __FULL__:
+        ###     -  has the computed SAID ( over the whole expanded ked )
+        ###         > Not sure if there is any untility in having this?
+        ###     
         
         def deepcopy(data:dict):
             """
@@ -3788,14 +3856,12 @@ class Saider(Matter):
                 # For primitive types (int, str, float, etc.), return the value directly
                 return data
         
-        def pathJoin(a):
-            return '.'.join(map(str, a))
 
         paths = cls._mapPathsToLabel(sad, label=label)  # Map paths to the specified label
         non_compact = deepcopy(sad)#.copy()
         compact = deepcopy(sad)#.copy()
-        sads = {}
-        saiders = {}
+        sads = []
+        saiders = []
 
 
         for path in paths:
@@ -3806,11 +3872,22 @@ class Saider(Matter):
             # Calculate SAID for the current object
             if label in parent: 
                  #  not root -> compactify, only set compactify once. this is confusing.
-                _sad = cls.saidify(parent, label=label, code=code, kind=kind, ignore=ignore,compactify= (not root))
+                compactify = True if path == [] else False
+                _sad = cls.saidify(parent, 
+                                   label=label, 
+                                   code=code, 
+                                   kind=kind, 
+                                   path=path,
+                                   compactify=compactify,
+                                   ignore=ignore)
+            
             else:
                 _sad = parent
-            saiders[pathJoin(path)] = _sad[0]
-            sads[pathJoin(path[:-1])] = _sad[1]
+            # saiders[pathJoin(path)] = _sad[0]
+            saiders.append(_sad[0])
+            # sads[pathJoin(path[:-1])] = _sad[1]
+            this_sad = Sadder(ked=_sad[1], kind=kind, label=label, path=path) if not isinstance(_sad[1], Sadder) else _sad[1]
+            sads.append(this_sad)
             
             # Update `non_compact` only at the specific field level
             cls._replaceNestedObject(non_compact, path, _sad[0].qb64)
@@ -3827,15 +3904,37 @@ class Saider(Matter):
             raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind, version=sml.vrsn)
             non_compact = sad
         ## ensure compact has non-compact said
-        non_compact[label] = compact[label]
+        _non_compact = cls.saidify(non_compact, 
+                                   label=label, 
+                                   code=code, 
+                                   kind=kind, 
+                                   path='__FULL__',
+                                   compactify=False
+                                   )
+        _non_compact_compliant_saider = saiders[-1].copy()
+        _non_compact_compliant_saider.path = '__FULL_COMPLIANT__'
+        _non_compact_compiant_sad = deepcopy(_non_compact[1].ked)
+        _non_compact_compiant_sad[label] = saiders[-1].qb64
+        saiders.append(_non_compact_compliant_saider)
+        sads.append(Sadder(ked=_non_compact_compiant_sad, kind=kind, label=label,path='__FULL_COMPLIANT__'))
+        saiders.append(_non_compact[0])
+        sads.append(_non_compact[1])
 
-        return {
-            'paths': paths,
-            'sads': sads,
-            'saiders': saiders,
-            'compact': compact,
-            'non_compact': non_compact
-        }
+        # saiders.append(_non_compact[0])
+        # sads.append(_non_compact[1])
+        # sads.append(non_compact[1])
+        # non_compact[label] = compact[label]
+
+        # saiders.append()?
+        return saiders, sads
+
+        # return {
+        #     'paths': paths,
+        #     'sads': sads,
+        #     'saiders': saiders,
+        #     'compact': compact,
+        #     'non_compact': non_compact
+        # }
 
             
 
@@ -4468,7 +4567,7 @@ class Sadder:
     SmellSize = MaxVSOffset + MAXVERFULLSPAN  # min buffer size to inhale
 
     def __init__(self, raw=b'', ked=None, sad=None, kind=None, saidify=False,
-                 code=MtrDex.Blake3_256):
+                 code=MtrDex.Blake3_256, label='d', path=[]):
         """
         Deserialize if raw provided does not verify assumes embedded said is valid
         Serialize if ked provided but not raw verifies if verify is True?
@@ -4486,6 +4585,8 @@ class Sadder:
 
         """
         self._code = code  # need default code for .saider
+        self.label = label
+        self.path = path
         if raw:  # deserialize raw using property setter
             self.raw = raw  # raw property setter does the deserialization
         elif ked:  # serialize ked using property setter
@@ -4508,6 +4609,8 @@ class Sadder:
         self._version = sad.version
         self._proto = sad.proto
         self._saider = sad.saider
+        self._label = sad.label
+        self._path = sad.path[:]
 
 
     def _inhale(self, raw):
@@ -4553,7 +4656,7 @@ class Sadder:
 
         Assumes only supports Version
         """
-        return sizeify(ked=ked, kind=kind)
+        return sizeify(ked=ked, kind=kind, version=None)
 
 
     def compare(self, said=None):
@@ -4594,8 +4697,7 @@ class Sadder:
         self._kind = kind
         self._version = version
         self._size = size
-        self._saider = Saider(qb64=ked["d"], code=self._code)
-
+        self._saider = Saider(qb64=ked[self.label], code=self._code) if self.label is not None else None
     @property
     def ked(self):
         """ ked property getter"""
@@ -4612,8 +4714,10 @@ class Sadder:
         self._kind = kind
         self._size = size
         self._version = version
-        self._saider = Saider(qb64=ked["d"], code=self._code)
-
+        if ked is not None and self.label in ked:
+            self._saider = Saider(qb64=ked[self.label], code=self._code)
+        else:
+            self._saider = None
     @property
     def kind(self):
         """ kind property getter"""
@@ -4630,7 +4734,10 @@ class Sadder:
         self._kind = kind
         self._size = size
         self._version = version
-        self._saider = Saider(qb64=ked["d"], code=self._code)
+        if ked is not None and self.label in ked:
+            self._saider = Saider(qb64=ked[self.label], code=self._code)
+        else:
+            self._saider = None
 
 
     @property

@@ -48,11 +48,13 @@ def test_notice():
         _ = notifying.Notice(pad=dict())
 
     _, pad = coring.Saider.saidify(dict(d="", x=1))
+    pad = pad.ked
     with pytest.raises(ValueError):
         _ = notifying.Notice(pad=pad)
 
     pad = dict(d="", a={"a": 1})
     _, pad = coring.Saider.saidify(pad)
+    pad = pad.ked
     note = notifying.Notice(pad=pad)
     assert note.pad['dt'] is not None
 

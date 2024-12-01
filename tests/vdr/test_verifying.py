@@ -61,6 +61,7 @@ def test_verifier(seeder):
             LEI="254900OPPU84GM83MG36",
         )
         _, d = scheming.Saider.saidify(sad=credSubject, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
+        d = d.ked
 
         creder = proving.credential(issuer=hab.pre,
                                     schema="EMQWEcCnVRk1hatTNyK3sIykYSrrFvafX3bHQ9Gkk1kC",
@@ -348,7 +349,7 @@ def test_verifier_chained_credential(seeder):
             LEI="5493001KJTIIGC8Y1R12",
         )
         _, d = scheming.Saider.saidify(sad=credSubject, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
-
+        d = d.ked
         creder = proving.credential(issuer=ron.pre,
                                     schema=qviSchema,
                                     data=d,
@@ -415,7 +416,7 @@ def test_verifier_chained_credential(seeder):
             LEI="254900OPPU84GM83MG36",
         )
         _, d = scheming.Saider.saidify(sad=leiCredSubject, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
-
+        d = d.ked
         chain = dict(
             d=creder.said,
             qualifiedvLEIIssuervLEICredential=dict(
@@ -504,7 +505,7 @@ def test_verifier_chained_credential(seeder):
             claim="An outrageous claim.",
         )
         _, d = scheming.Saider.saidify(sad=untargetedSubject, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
-
+        d = d.ked
         chainSad = dict(
             d='',
             targetedEdge=dict(
@@ -512,7 +513,7 @@ def test_verifier_chained_credential(seeder):
             ),
         )
         _, chain = scheming.Saider.saidify(sad=chainSad, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
-
+        chain = chain.ked
         untargetedCreder = proving.credential(issuer=ian.pre,
                                               schema=optionalIssueeSchema,
                                               data=d,
@@ -552,7 +553,7 @@ def test_verifier_chained_credential(seeder):
             claim="An outrageous claim.",
         )
         _, d = scheming.Saider.saidify(sad=chainedSubject, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
-
+        d = d.ked
         chainSad = dict(
             d='',
             untargetedButI2I=dict(
@@ -561,7 +562,7 @@ def test_verifier_chained_credential(seeder):
             ),
         )
         _, chain = scheming.Saider.saidify(sad=chainSad, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
-
+        chain = chain.ked
         chainedCreder = proving.credential(issuer=ian.pre,
                                            schema=optionalIssueeSchema,
                                            data=d,

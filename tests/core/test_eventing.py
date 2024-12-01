@@ -4458,11 +4458,11 @@ def test_process_nontransferable():
                 c=[],  # list of config ordered mappings may be empty
                 a=[],
                 )
-    _, ked0 = coring.Saider.saidify(sad=ked0)
+    _, sad = coring.Saider.saidify(sad=ked0)
 
 
     # Serialize ked0
-    tser0 = serdering.SerderKERI(sad=ked0)
+    tser0 = serdering.SerderKERI(sad=sad.ked)
 
     # sign serialization
     tsig0 = skp0.sign(tser0.raw, index=0)
@@ -4550,10 +4550,10 @@ def test_process_transferable():
     assert aid0.qb64 == skp0.verfer.qb64
     # update ked with pre
     ked0["i"] = aid0.qb64
-    _, ked0 = coring.Saider.saidify(sad=ked0)
+    _, sad0 = coring.Saider.saidify(sad=ked0)
 
     # Serialize ked0
-    tser0 = serdering.SerderKERI(sad=ked0)
+    tser0 = serdering.SerderKERI(sad=sad0.ked)
 
     # sign serialization
     tsig0 = skp0.sign(tser0.raw, index=0)
@@ -4665,9 +4665,9 @@ def test_process_manual():
                 c=[],  # list of config traits may be empty
                 a=[],  # list of seals ordered mappings may be empty
                 )
-    _, ked0 = coring.Saider.saidify(sad=ked0)
+    _, sad0 = coring.Saider.saidify(sad=ked0)
 
-    txsrdr = serdering.SerderKERI(sad=ked0, kind=Kinds.json)
+    txsrdr = serdering.SerderKERI(sad=sad0.ked, kind=Kinds.json)
     assert txsrdr.raw == (b'{"v":"KERI10JSON00012b_","t":"icp","d":"EKYHED-wvkYDZv4tNUF9qiC1kgnnGLS9YUU8'
                         b'PCWig_n4","i":"DK-WsHD7MKfQpBjJ3B2GwjqY9z90G94uzMs7irCiT-dL","s":"0","kt":"1'
                         b'","k":["DK-WsHD7MKfQpBjJ3B2GwjqY9z90G94uzMs7irCiT-dL"],"nt":"1","n":["EDcWJG'
@@ -4676,7 +4676,7 @@ def test_process_manual():
     assert txsrdr.size == 299
 
     txdig = blake3.blake3(txsrdr.raw).digest()
-    txdigmat = coring.Saider(sad=ked0, code=MtrDex.Blake3_256)
+    txdigmat = coring.Saider(sad=sad0.ked, code=MtrDex.Blake3_256)
     assert txdigmat.qb64 == 'EKYHED-wvkYDZv4tNUF9qiC1kgnnGLS9YUU8PCWig_n4'
 
     assert txsrdr.said == txdigmat.qb64
@@ -4699,7 +4699,7 @@ def test_process_manual():
     #  Recieve side
     rxsrdr = serdering.SerderKERI(raw=msgb)
     assert rxsrdr.size == txsrdr.size
-    assert rxsrdr.ked == ked0
+    assert rxsrdr.ked == sad0.ked
 
     rxsigqb64 = msgb[rxsrdr.size:].decode("utf-8")
     assert len(rxsigqb64) == len(txsigmat.qb64)

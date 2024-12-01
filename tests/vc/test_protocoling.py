@@ -65,6 +65,7 @@ def test_ipex(seeder, mockCoringRandomNonce, mockHelpingNowIso8601, mockHelpingN
             LEI="254900OPPU84GM83MG36",
         )
         _, d = scheming.Saider.saidify(sad=credSubject, code=coring.MtrDex.Blake3_256, label=scheming.Saids.d)
+        d = d.ked
 
         creder = credential(issuer=sidHab.pre,
                             schema=schema,

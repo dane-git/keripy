@@ -93,8 +93,10 @@ def credential(schema,
         vc["r"] = rules
 
     _, sad = coring.Saider.saidify(sad=subject, kind=kind, label=coring.Saids.d)
+    sad = sad.ked
     vc["a"] = sad
 
     _, vc = coring.Saider.saidify(sad=vc)
+    vc = vc.ked
 
     return serdering.SerderACDC(sad=vc)
