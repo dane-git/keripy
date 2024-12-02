@@ -5057,27 +5057,63 @@ def test_saider():
     saiders, sads = Saider.saidify(acdc_ked)
     assert len(saiders) == len(sads)
     num_saiders = len(saiders)
+    special = ['__FULL__', '__FULL_COMPLIANT__']
+    
     for i in range(num_saiders):
         sad = sads[i]
         saider = saiders[i]
+        # print(sad.path)
         assert saider.path == sad.path
         assert len(sad.raw) == sad.size
         assert saider.qb64 == sad.said
         assert coring.loads(sad.raw) ==  sad.ked
         assert sad.said == sad.ked[sad.label]
-        print(sad.path)
-        if '__FULL_COMPLIANT__' not in sad.path:
+        if sad.path not in special:
             assert saider.verify(sad.ked, prefixed=True) is True
             _saider, _sad = Saider.saidify(sad.ked, labal=sad.label, compactify=False)
-            assert _saider.qb64 == saider.qb64 == sad.ked[sad.label]
+            assert _saider.qb64 == saider.qb64 == sad.ked[sad.label] == _sad.said
+
+        
+        if sad.path == '__FULL__':
+            _saider, _sad = Saider.saidify(sad.ked, labal=sad.label, compactify=False)
+            assert _saider.qb64 == saider.qb64 == sad.ked[sad.label] == _sad.said
+
+
         if sad.path == '__FULL_COMPLIANT__':
             last_sad = sads[i-1]
             last_saider = saiders[i-1]
             assert last_sad.path == [sad.label]
             assert last_saider.path == [sad.label]
             assert last_saider.qb64 == saider.qb64 == sad.ked[sad.label] == sad.said
-
             
+            for i in range(num_saiders):
+                check_saider = saiders[i]
+                check_sad = sads[i]
+                assert(check_sad.said == check_saider.qb64)
+                check_path = check_sad.path
+                check_parent, check_value = check_saider._getNestedObjectAndParent(sad.ked, check_path)
+                if check_path not in special:
+                    assert check_value == check_sad.said
+                    compacted_sad = saider._compactify(check_parent, sad.label)
+                    if check_path != [sad.label]:
+                        assert compacted_sad == check_sad.ked
+    ## check full compact
+    for i in range(num_saiders):
+        sad = sads[i]
+        saider = saiders[i]
+        
+        if sad.path == [sad.label]: # compacted
+            ## check all saids for all paths of compact:
+            for i in range(num_saiders):
+                check_sad = sads[i]
+                check_saider = saiders[i]
+                assert check_sad.path == check_saider.path
+                if check_saider.path in special:
+                    continue
+                # just the first link in the path.
+                get_path = check_saider.path[0]
+                check_parent, check_value = check_saider._getNestedObjectAndParent(sad.ked, [get_path])
+                assert check_value == sad.ked[get_path]
 
     """Done Test"""
 
