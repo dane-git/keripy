@@ -3891,7 +3891,7 @@ class Saider(Matter):
             
             # Update `non_compact` only at the specific field level
             cls._replaceNestedObject(non_compact, path, _sad[0].qb64)
-            
+
             # For `compact`, replace the entire nested structure as per SAID path requirements
             if len(path[:-1]) > 0:
                 cls._replaceNestedObject(compact, path[:-1], _sad[0].qb64)
@@ -3902,7 +3902,7 @@ class Saider(Matter):
         if 'v' in non_compact and cls._vIsFirst( non_compact): 
             sml = smell(cls._serialize(non_compact))
             raw, proto, kind, sad, version = sizeify(ked=sad, kind=kind, version=sml.vrsn)
-            non_compact = sad
+            non_compact['v'] = sad['v']
         ## ensure compact has non-compact said
         _non_compact = cls.saidify(non_compact, 
                                    label=label, 
