@@ -5091,10 +5091,10 @@ def test_saider():
                 check_sad = sads[i]
                 assert(check_sad.said == check_saider.qb64)
                 check_path = check_sad.path
-                check_parent, check_value = check_saider._getNestedObjectAndParent(sad.ked, check_path)
+                check_parent, check_value = check_sad.saider._getNestedObjectAndParent(sad.ked, check_path)
                 if check_path not in special:
                     assert check_value == check_sad.said
-                    compacted_sad = saider._compactify(check_parent, sad.label)
+                    compacted_sad = sad.saider._compactify(check_parent, sad.label)
                     if check_path != [sad.label]:
                         assert compacted_sad == check_sad.ked
     ## check full compact
@@ -5112,9 +5112,13 @@ def test_saider():
                     continue
                 # just the first link in the path.
                 get_path = check_saider.path[0]
-                check_parent, check_value = check_saider._getNestedObjectAndParent(sad.ked, [get_path])
+                check_parent, check_value = check_sad.saider._getNestedObjectAndParent(sad.ked, [get_path])
                 assert check_value == sad.ked[get_path]
-
+    for i in range(num_saiders):
+        sad = sads[i]
+        print(sad.path)
+        if sad.path != '__FULL_COMPLIANT__':
+            assert sad.saider.verify(sad.ked) is True
     """Done Test"""
 
 

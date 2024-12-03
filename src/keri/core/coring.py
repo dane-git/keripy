@@ -3472,12 +3472,12 @@ class Saider(Matter):
 
         """
         if path is None:
-            path = []
+            path = [label]
         self.path = path
 
         try:
             # when raw and code are both provided
-            super(Saider, self).__init__(raw=raw, code=code,**kwa)
+            super(Saider, self).__init__(raw=raw, code=code, path=path, **kwa)
         except EmptyMaterialError as ex:  # raw or code missing
 
             if isinstance(sad, Sadder ):
@@ -3489,7 +3489,7 @@ class Saider(Matter):
             if not code:
                 if sad[label]:  # no code but sad[label] not empty
                     # attempt to get code from said in sad
-                    super(Saider, self).__init__(qb64=sad[label], code=code, **kwa)
+                    super(Saider, self).__init__(qb64=sad[label], code=code, path=[label],**kwa)
                     code = self._code
                 else:  # use default code
                     code = MtrDex.Blake3_256
@@ -3504,7 +3504,7 @@ class Saider(Matter):
                                    kind=kind,
                                    label=label,
                                    ignore=ignore)
-            super(Saider, self).__init__(raw=raw, code=code, **kwa)
+            super(Saider, self).__init__(raw=raw, code=code, path=[path],**kwa)
 
         if not self.digestive:
             raise ValueError("Unsupported digest code = {}."
@@ -3610,6 +3610,8 @@ class Saider(Matter):
         if compactify: # and clas._vIsFirst(sad):
 
             return clas._saidify(sad=sad, code=code, kind=kind, label=label, ignore=ignore, path=path,**kwa)
+        if path == []:
+            path = [label]
         saider = clas(raw=raw, code=code, kind=kind, label=label, ignore=ignore, compactify= compactify, path=path, **kwa)
         sad[label] = saider.qb64
         if not isinstance(sad, Sadder):
@@ -3888,7 +3890,7 @@ class Saider(Matter):
             # sads[pathJoin(path[:-1])] = _sad[1]
             this_sad = Sadder(ked=_sad[1], kind=kind, label=label, path=path) if not isinstance(_sad[1], Sadder) else _sad[1]
             sads.append(this_sad)
-            
+
             # Update `non_compact` only at the specific field level
             cls._replaceNestedObject(non_compact, path, _sad[0].qb64)
 
