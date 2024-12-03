@@ -92,7 +92,7 @@ def sizeify(ked, kind=None, version=Version):
     # TODO this is messy and confusing.
     if "v" not in ked and version is None:
         
-        ## TODO detect kind from serialized
+        ## TODO detect kind from serialized tritet
         if kind is None:
             kind = 'JSON'
         if kind not in Kinds:
@@ -3588,7 +3588,6 @@ class Saider(Matter):
                         otherwise default is Serials.json
             label (str): Saidage value as said field label in which to inject said
             path (list): The current path in the nested structure for SAID injection.
-                            Defaults to an empty list.
             compactify (bool): to compute compactified sads and saiders
                                 if None determine by v field ( True if version major is 2 )
             ignore (list): fields to ignore when generating SAID
@@ -3823,7 +3822,7 @@ class Saider(Matter):
                 - `sads`: A list of `Sadder` instances or dictionaries representing the updated SADs with injected SAIDs.
 
         """
-        ## CONFUSING NOTE:  
+        ### NOTE - confusing:  
         ### Not sure how to handle the __FULL_COMPLIANT__ (path) ked and the __FULL__ (path) ked:
         ### __FULL_COMPLIANT__: 
         ###     -  has the correct verstion string for its major version and length
@@ -3835,7 +3834,7 @@ class Saider(Matter):
         ###
         ### __FULL__:
         ###     -  has the computed SAID ( over the whole expanded ked )
-        ###         > Not sure if there is any untility in having this?
+        ###         > Not sure if there is any utility in having this?
         ###     
         
         def deepcopy(data:dict):
@@ -4550,6 +4549,7 @@ class Sadder:
         said (str): SAID of .saider qb64
         saidb (bytes): SAID of .saider  qb64b
         pretty (str): Pretty JSON of this SAD
+        path (list): The path to the current SAID within a nested structure.
 
     Hidden Attributes:
         ._raw is bytes of serialized event only
