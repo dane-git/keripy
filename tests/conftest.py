@@ -172,6 +172,7 @@ class DbSeed:
                'required': ['i', 'ri', 's', 'd', 'e', 'r'], 'type': 'object'}
 
         _, sad = coring.Saider.saidify(sad, label=coring.Saids.dollar)
+        sad = sad.ked
         schemer = scheming.Schemer(sed=sad)
         db.schema.pin(schemer.said, schemer)
 
@@ -205,6 +206,7 @@ class DbSeed:
                'required': ['i', 'ri', 's', 'd', 'e', 'r'], 'type': 'object'}
 
         _, sad = coring.Saider.saidify(sad, label=coring.Saids.dollar)
+        sad = sad.ked
         schemer = scheming.Schemer(sed=sad)
         # NEW: "ENTAoj2oNBFpaniRswwPcca9W1ElEeH2V7ahw68HV4G5
         db.schema.pin(schemer.said, schemer)
@@ -236,6 +238,7 @@ class DbSeed:
                                                                                            'type': 'object'},
                               'e': {'type': 'object'}}, 'additionalProperties': False, 'required': ['d', 'i', 'ri']}
         _, sad = coring.Saider.saidify(sad, label=coring.Saids.dollar)
+        sad = sad.ked
         schemer = scheming.Schemer(sed=sad)
         # NEW: EMQWEcCnVRk1hatTNyK3sIykYSrrFvafX3bHQ9Gkk1kC
         db.schema.pin(schemer.said, schemer)
@@ -277,6 +280,7 @@ class DbSeed:
                                     'minItems': 0}}, 'additionalProperties': False,
                'required': ['i', 'ri', 's', 'd', 'e', 'r'], 'type': 'object'}
         _, sad = coring.Saider.saidify(sad, label=coring.Saids.dollar)
+        sad = sad.ked
         schemer = scheming.Schemer(sed=sad)
         # NEW: ED892b40P_GcESs3wOcc2zFvL_GVi2Ybzp9isNTZKqP0
         db.schema.pin(schemer.said, schemer)
@@ -315,6 +319,7 @@ class DbSeed:
                'required': ['i', 'ri', 's', 'd'], 'type': 'object'}
 
         _, sad = coring.Saider.saidify(sad, label=coring.Saids.dollar)
+        sad = sad.ked
         schemer = scheming.Schemer(sed=sad)
         # NEW: EFgnk_c08WmZGgv9_mpldibRuqFMTQN-rAgtD-TCOwbs
         db.schema.pin(schemer.said, schemer)

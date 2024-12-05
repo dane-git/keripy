@@ -126,6 +126,7 @@ def test_credentialer():
         a=sub
     )
     _, d = coring.Saider.saidify(sad=d)
+    d = d.ked
 
     said = 'ENWScKaCtogzVvZfbDmvS3izq7bM7AOhHzjf-QL-VU5m'  # creder.said
 
@@ -161,6 +162,7 @@ def test_credentialer():
     d2['d'] = ""
     d2["v"] = coring.versify(protocol=coring.Protocols.acdc, kind=Kinds.cbor, size=0)
     _, d2 = coring.Saider.saidify(sad=d2)
+    d2 = d2.ked
 
     creder = serdering.SerderACDC(sad=d2)  # Creder(ked=d2)
     assert creder.said == "EJHxKgPiGfPmdH2EbybID30hXIl916ILZQgC3JOa0cvY"  # shouldnt this be different here?
@@ -187,6 +189,7 @@ def test_credentialer():
     d3 = dict(d)
     d3["v"] = coring.versify(protocol=coring.Protocols.acdc, kind=Kinds.mgpk, size=0)
     _, d3 = coring.Saider.saidify(sad=d3)
+    d3 = d3.ked
     creder = serdering.SerderACDC(sad=d3)  # Creder(ked=d3)
 
     assert creder.said == "EMZeK1yLZd1JV6Ktdq_YUt-YbyoTWB9UMcFzuiDly2Y6"

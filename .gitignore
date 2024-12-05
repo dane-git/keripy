@@ -77,8 +77,12 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+<<<<<<< HEAD
 *.scratch.ipynb
 *scratch*.ipynb
+=======
+notebooks/
+>>>>>>> compact-acdc-algo
 
 # IPython
 profile_default/

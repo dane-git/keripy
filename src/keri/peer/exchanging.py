@@ -381,7 +381,7 @@ def exchange(route,
     if e:
         e["d"] = ""
         _, e = coring.Saider.saidify(sad=e, label=coring.Saids.d)
-
+        e = e.ked
     modifiers = modifiers if modifiers is not None else {}
 
     if diger is None:
@@ -409,8 +409,8 @@ def exchange(route,
                a=attrs,
                e=e)
 
-    _, ked = coring.Saider.saidify(sad=ked)
-    return serdering.SerderKERI(sad=ked), end  # return serialized ked
+    _, sad = coring.Saider.saidify(sad=ked)
+    return serdering.SerderKERI(sad=sad.ked), end  # return serialized ked
 
 
 def cloneMessage(hby, said):

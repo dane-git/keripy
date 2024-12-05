@@ -292,6 +292,7 @@ def revoke(
         ked["dt"] = dt
 
     _, ked = coring.Saider.saidify(sad=ked)
+    ked = ked.ked
 
     serder = serdering.SerderKERI(sad=ked, makify=True)
     return serder
@@ -341,6 +342,7 @@ def backerIssue(
                dt=helping.nowIso8601(),
                )
     _, ked = coring.Saider.saidify(sad=ked)
+    ked = ked.ked
 
     if dt is not None:
         ked["dt"] = dt
@@ -395,6 +397,7 @@ def backerRevoke(
                dt=helping.nowIso8601(),
                )
     _, ked = coring.Saider.saidify(sad=ked)
+    ked = ked.ked
 
     if dt is not None:
         ked["dt"] = dt

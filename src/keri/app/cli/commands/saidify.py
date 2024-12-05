@@ -39,6 +39,7 @@ def saidify(tock=0.0, **opts):
     with open(args.file, 'r') as f:
         sad = json.load(f)
         _, out = coring.Saider.saidify(sad=sad, label=args.label)
+        out = out.ked
 
     with open(args.file, 'w') as f:
         json.dump(out, f)
